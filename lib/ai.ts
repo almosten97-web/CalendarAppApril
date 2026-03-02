@@ -26,6 +26,21 @@ Each object in the array must have exactly these fields:
 
 Use 24-hour time format. If year is not specified, assume the current or next upcoming occurrence of that date.`;
 
+const IMAGE_PROMPT = `You are a scheduling assistant. Look at this schedule image and extract ONLY the appointments for April 2026.
+Return ONLY a valid JSON object with an "appointments" array — no markdown, no explanation, no preamble.
+
+Each object in the array must have exactly these fields:
+{
+  "date": "YYYY-MM-DD",
+  "start_time": "HH:MM",
+  "end_time": "HH:MM or null",
+  "duration_minutes": number_or_null,
+  "location": "string or null",
+  "notes": "string or null"
+}
+
+Use 24-hour time format. Only include dates in April 2026 (2026-04-01 through 2026-04-30). Ignore all other months.`;
+
 export async function parseScheduleText(
   clientName: string,
   scheduleText: string
@@ -42,6 +57,40 @@ export async function parseScheduleText(
   const raw = response.choices[0].message.content ?? '';
   const parsed = JSON.parse(raw) as { appointments: ParsedAppointment[] };
 
+  if (!Array.isArray(parsed.appointments)) throw new Error('Unexpected response format from AI');
+  return parsed.appointments;
+}
+
+export async function parseScheduleImage(
+  clientName: string,
+  base64Image: string,
+  mimeType: string
+): Promise<ParsedAppointment[]> {
+  const response = await client.chat.completions.create({
+    model: 'gpt-4o',
+    response_format: { type: 'json_object' },
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: `Client: ${clientName}\n\n${IMAGE_PROMPT}`,
+          },
+          {
+            type: 'image_url',
+            image_url: {
+              url: `data:${mimeType};base64,${base64Image}`,
+              detail: 'high',
+            },
+          },
+        ],
+      },
+    ],
+  });
+
+  const raw = response.choices[0].message.content ?? '';
+  const parsed = JSON.parse(raw) as { appointments: ParsedAppointment[] };
   if (!Array.isArray(parsed.appointments)) throw new Error('Unexpected response format from AI');
   return parsed.appointments;
 }

@@ -11,7 +11,7 @@ export default function UploadPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Add Client Schedule</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Paste the schedule text from your client&apos;s message. AI will extract the appointments automatically.
+          Upload a schedule image or paste text. AI will extract April 2026 appointments automatically.
         </p>
       </div>
 
