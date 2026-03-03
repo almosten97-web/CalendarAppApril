@@ -133,7 +133,7 @@ export default function UploadForm({ onSuccess }: Props) {
           {imageFile && (
             <p className="mt-1.5 text-xs text-gray-500">{imageFile.name}</p>
           )}
-          <p className="mt-1.5 text-xs text-gray-400">AI will extract only April 2026 appointments from the image.</p>
+          <p className="mt-1.5 text-xs text-gray-400">AI will find all shifts for the employee name entered above.</p>
         </div>
       ) : (
         <div>
@@ -159,7 +159,7 @@ export default function UploadForm({ onSuccess }: Props) {
 
       {result && (
         <div className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
-          ✓ Added {result.count} April appointment{result.count !== 1 ? 's' : ''} to your calendar
+          ✓ Added {result.count} shift{result.count !== 1 ? 's' : ''} to your calendar
         </div>
       )}
 
@@ -168,7 +168,7 @@ export default function UploadForm({ onSuccess }: Props) {
         disabled={loading}
         className="w-full py-3 bg-violet-600 text-white font-semibold rounded-xl hover:bg-violet-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {loading ? 'Scanning with AI…' : 'Add April to Calendar'}
+        {loading ? 'Scanning with AI…' : 'Add Shifts to Calendar'}
       </button>
     </form>
   );

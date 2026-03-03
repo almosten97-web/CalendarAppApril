@@ -26,8 +26,14 @@ Each object in the array must have exactly these fields:
 
 Use 24-hour time format. If year is not specified, assume the current or next upcoming occurrence of that date.`;
 
-const IMAGE_PROMPT = `You are a scheduling assistant. Look at this schedule image carefully and extract every appointment or shift that falls in the month of April.
-The year may not be shown in the image — always use 2026 for any April dates.
+const IMAGE_PROMPT = `You are a scheduling assistant reading a work roster/schedule image.
+Your job is to find every shift assigned to the employee named CLIENT_NAME and extract it.
+
+The employee name may appear in various formats on the roster, such as:
+- "CLIENT_NAME" in a row or column header
+- "-CLIENT_NAME" or "CLIENT_NAME-" alongside a time slot
+- A cell in a grid that contains both a time and "CLIENT_NAME"
+
 Return ONLY a valid JSON object with an "appointments" array — no markdown, no explanation, no preamble.
 
 Each object must have exactly these fields:
@@ -41,10 +47,11 @@ Each object must have exactly these fields:
 }
 
 Rules:
-- Use 24-hour time. Convert "9am" → "09:00", "1pm" → "13:00", "OFF" or "RDO" entries → skip them.
-- Date formats like "April 3", "Apr 3", "4/3", "4-3" all mean 2026-04-03.
-- Only include April dates (month 4). Skip any dates in other months.
-- If no appointments are visible for April, return {"appointments": []}.`;
+- Extract ALL shifts for CLIENT_NAME regardless of which month or week they fall in.
+- If the year is not shown, assume 2026.
+- Use 24-hour time. Convert "9am" → "09:00", "1pm" → "13:00".
+- Skip days marked OFF, RDO, or with no time for CLIENT_NAME.
+- If no shifts are found for CLIENT_NAME, return {"appointments": []}. Do not include shifts for other employees.`;
 
 export async function parseScheduleText(
   clientName: string,
@@ -80,7 +87,7 @@ export async function parseScheduleImage(
         content: [
           {
             type: 'text',
-            text: `Client: ${clientName}\n\n${IMAGE_PROMPT}`,
+            text: IMAGE_PROMPT.replaceAll('CLIENT_NAME', clientName),
           },
           {
             type: 'image_url',
