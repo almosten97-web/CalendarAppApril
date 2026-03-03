@@ -35,7 +35,7 @@ export default function UploadForm({ onSuccess }: Props) {
     setLoading(true);
 
     try {
-      let data: { count: number; events: Event[] };
+      let data: { count: number; events: Event[]; error?: string };
 
       if (mode === 'image') {
         if (!imageFile) throw new Error('Please select a schedule image');
