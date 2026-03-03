@@ -73,6 +73,7 @@ export default function CalendarView({ initialEvents = [] }: Props) {
       {selected && (
         <EventModal
           event={selected}
+          knownClients={[...new Set(events.map((e) => e.client_name))].sort()}
           onClose={() => setSelected(null)}
           onUpdated={handleUpdated}
           onDeleted={handleDeleted}

@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { updateEvent, deleteEvent, type Event } from '@/lib/db';
+import { colorForClient } from '@/lib/colors';
 
 type Props = {
   event: Event;
+  knownClients: string[];
   onClose: () => void;
   onUpdated: (updated: Event) => void;
   onDeleted: (id: string) => void;
@@ -17,7 +19,7 @@ function fmt(iso: string) {
   });
 }
 
-export default function EventModal({ event, onClose, onUpdated, onDeleted }: Props) {
+export default function EventModal({ event, knownClients, onClose, onUpdated, onDeleted }: Props) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -30,11 +32,15 @@ export default function EventModal({ event, onClose, onUpdated, onDeleted }: Pro
     notes: event.notes ?? '',
   });
 
+  // Live color preview derived from the currently typed client name
+  const previewColor = colorForClient(form.client_name || 'Unknown');
+
   async function handleSave() {
     setSaving(true);
     try {
       const updated = await updateEvent(event.id, {
         ...form,
+        color: colorForClient(form.client_name || 'Unknown'),
         end_time: form.end_time || null,
         location: form.location || null,
         notes: form.notes || null,
@@ -66,8 +72,11 @@ export default function EventModal({ event, onClose, onUpdated, onDeleted }: Pro
         className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Color strip */}
-        <div className="absolute top-0 left-0 right-0 h-1.5 rounded-t-2xl" style={{ background: event.color }} />
+        {/* Color strip — updates live while editing */}
+        <div
+          className="absolute top-0 left-0 right-0 h-1.5 rounded-t-2xl transition-colors"
+          style={{ background: editing ? previewColor : event.color }}
+        />
 
         <button
           onClick={onClose}
@@ -108,14 +117,31 @@ export default function EventModal({ event, onClose, onUpdated, onDeleted }: Pro
           <>
             <h2 className="text-lg font-semibold text-gray-900 mt-1 mb-4">Edit Appointment</h2>
             <div className="space-y-3 text-sm">
+
+              {/* Client selector with live color swatch */}
               <label className="block">
                 <span className="text-gray-600 font-medium">Client</span>
-                <input
-                  className="mt-1 w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-400"
-                  value={form.client_name}
-                  onChange={(e) => setForm({ ...form, client_name: e.target.value })}
-                />
+                <div className="mt-1 flex items-center gap-2">
+                  <span
+                    className="w-4 h-4 rounded-full flex-shrink-0 transition-colors"
+                    style={{ background: previewColor }}
+                  />
+                  <input
+                    list="client-suggestions"
+                    className="flex-1 border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-400"
+                    value={form.client_name}
+                    onChange={(e) => setForm({ ...form, client_name: e.target.value })}
+                    placeholder="Client name"
+                  />
+                  <datalist id="client-suggestions">
+                    {knownClients.map((c) => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
+                </div>
+                <p className="mt-1 text-xs text-gray-400">Color updates automatically with the client name.</p>
               </label>
+
               <label className="block">
                 <span className="text-gray-600 font-medium">Title</span>
                 <input

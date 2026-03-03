@@ -28,19 +28,22 @@ Each object in the array must have exactly these fields:
 Use 24-hour time format. If year is not specified, assume the current or next upcoming occurrence of that date.`;
 
 const IMAGE_PROMPT = `You are a scheduling assistant reading a work roster/schedule image.
-The worker is April. Find every shift on the roster that belongs to April and extract it.
+The worker is April. Your job is to find every shift assigned to April and record it with the correct CLIENT name.
 
-April's shifts may be marked as "-April", "April-", or appear in a row/column assigned to April.
+HOW THIS ROSTER IS STRUCTURED:
+- The roster is a calendar grid or table.
+- CLIENT names appear as SECTION HEADERS or COLUMN HEADERS at the TOP of each block/column.
+- Underneath each client header, rows list which workers are scheduled and at what time.
+- April's name ("-April", "April-", or just "April") appears INSIDE the cells under a client header — those are her shifts FOR THAT CLIENT.
+- Other names in the same cell (next to or near "-April") are other workers, NOT the client.
 
-For each of April's shifts, also identify the CLIENT or CUSTOMER name associated with that shift.
-The client name may appear as another name in the same cell or row (e.g. "John Smith - April 9am-3pm"),
-or as a column/row header for that day slot. If no client name is visible, use "Unknown".
+So: look UP to the header above the cell containing April's name to find the CLIENT for that shift.
 
 Return ONLY a valid JSON object with an "appointments" array — no markdown, no explanation, no preamble.
 
 Each object must have exactly these fields:
 {
-  "client_name": "the client or customer name for this shift, or Unknown",
+  "client_name": "the CLIENT name from the section/column header above April's shift",
   "date": "YYYY-MM-DD",
   "start_time": "HH:MM",
   "end_time": "HH:MM or null",
@@ -55,7 +58,8 @@ Rules:
 - Use 24-hour time. Convert "9am" → "09:00", "1pm" → "13:00".
 - Skip days marked OFF, RDO, or where April has no shift.
 - Do not include shifts belonging to other workers.
-- If no shifts are found for April, return {"appointments": []}. `;
+- If the client name cannot be determined, use "Unknown".
+- If no shifts found for April, return {"appointments": []}.`;
 
 export async function parseScheduleText(
   clientName: string,
