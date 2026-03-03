@@ -1,7 +1,27 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { addEvents, type Event } from '@/lib/db';
+import { addEvents, getAllEvents, type Event } from '@/lib/db';
+
+function findOverlaps(incoming: Event[], existing: Event[]): string[] {
+  const warnings: string[] = [];
+  for (const a of incoming) {
+    const aStart = new Date(a.start_time).getTime();
+    const aEnd = a.end_time ? new Date(a.end_time).getTime() : aStart;
+    for (const b of existing) {
+      const bStart = new Date(b.start_time).getTime();
+      const bEnd = b.end_time ? new Date(b.end_time).getTime() : bStart;
+      // Overlap: ranges intersect (touching endpoints don't count)
+      if (aStart < bEnd && aEnd > bStart) {
+        const dateStr = new Date(a.start_time).toLocaleDateString('en-US', {
+          weekday: 'short', month: 'short', day: 'numeric',
+        });
+        warnings.push(`${dateStr} — ${a.client_name} overlaps with ${b.client_name}`);
+      }
+    }
+  }
+  return [...new Set(warnings)];
+}
 
 type Props = {
   onSuccess: (events: Event[]) => void;
@@ -18,6 +38,7 @@ export default function UploadForm({ onSuccess }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<{ count: number } | null>(null);
+  const [overlaps, setOverlaps] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -28,10 +49,11 @@ export default function UploadForm({ onSuccess }: Props) {
     setResult(null);
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError('');
     setResult(null);
+    setOverlaps([]);
     setLoading(true);
 
     try {
@@ -54,9 +76,14 @@ export default function UploadForm({ onSuccess }: Props) {
         if (!res.ok) throw new Error(data.error || 'Failed to parse');
       }
 
-      await addEvents(data.events as Event[]);
+      const newEvents = data.events as Event[];
+      const existing = await getAllEvents();
+      const warnings = findOverlaps(newEvents, existing);
+
+      await addEvents(newEvents);
       setResult({ count: data.count });
-      onSuccess(data.events as Event[]);
+      setOverlaps(warnings);
+      onSuccess(newEvents);
       setClientName('');
       setScheduleText('');
       setImageFile(null);
@@ -161,6 +188,15 @@ export default function UploadForm({ onSuccess }: Props) {
       {result && (
         <div className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
           ✓ Added {result.count} shift{result.count !== 1 ? 's' : ''} to your calendar
+        </div>
+      )}
+
+      {overlaps.length > 0 && (
+        <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <p className="font-semibold mb-1">⚠ Overlapping shifts detected:</p>
+          <ul className="list-disc list-inside space-y-0.5">
+            {overlaps.map((w, i) => <li key={i}>{w}</li>)}
+          </ul>
         </div>
       )}
 
