@@ -26,10 +26,11 @@ Each object in the array must have exactly these fields:
 
 Use 24-hour time format. If year is not specified, assume the current or next upcoming occurrence of that date.`;
 
-const IMAGE_PROMPT = `You are a scheduling assistant. Look at this schedule image and extract ONLY the appointments for April 2026.
+const IMAGE_PROMPT = `You are a scheduling assistant. Look at this schedule image carefully and extract every appointment or shift that falls in the month of April.
+The year may not be shown in the image — always use 2026 for any April dates.
 Return ONLY a valid JSON object with an "appointments" array — no markdown, no explanation, no preamble.
 
-Each object in the array must have exactly these fields:
+Each object must have exactly these fields:
 {
   "date": "YYYY-MM-DD",
   "start_time": "HH:MM",
@@ -39,7 +40,11 @@ Each object in the array must have exactly these fields:
   "notes": "string or null"
 }
 
-Use 24-hour time format. Only include dates in April 2026 (2026-04-01 through 2026-04-30). Ignore all other months.`;
+Rules:
+- Use 24-hour time. Convert "9am" → "09:00", "1pm" → "13:00", "OFF" or "RDO" entries → skip them.
+- Date formats like "April 3", "Apr 3", "4/3", "4-3" all mean 2026-04-03.
+- Only include April dates (month 4). Skip any dates in other months.
+- If no appointments are visible for April, return {"appointments": []}.`;
 
 export async function parseScheduleText(
   clientName: string,
