@@ -9,6 +9,7 @@ export type ParsedAppointment = {
   duration_minutes: number | null;
   location: string | null;
   notes: string | null;
+  client_name: string;    // extracted from image, or supplied by caller
 };
 
 const SYSTEM_PROMPT = `You are a scheduling assistant. Extract every appointment from the schedule text below.
@@ -27,17 +28,19 @@ Each object in the array must have exactly these fields:
 Use 24-hour time format. If year is not specified, assume the current or next upcoming occurrence of that date.`;
 
 const IMAGE_PROMPT = `You are a scheduling assistant reading a work roster/schedule image.
-Your job is to find every shift assigned to the employee named CLIENT_NAME and extract it.
+The worker is April. Find every shift on the roster that belongs to April and extract it.
 
-The employee name may appear in various formats on the roster, such as:
-- "CLIENT_NAME" in a row or column header
-- "-CLIENT_NAME" or "CLIENT_NAME-" alongside a time slot
-- A cell in a grid that contains both a time and "CLIENT_NAME"
+April's shifts may be marked as "-April", "April-", or appear in a row/column assigned to April.
+
+For each of April's shifts, also identify the CLIENT or CUSTOMER name associated with that shift.
+The client name may appear as another name in the same cell or row (e.g. "John Smith - April 9am-3pm"),
+or as a column/row header for that day slot. If no client name is visible, use "Unknown".
 
 Return ONLY a valid JSON object with an "appointments" array — no markdown, no explanation, no preamble.
 
 Each object must have exactly these fields:
 {
+  "client_name": "the client or customer name for this shift, or Unknown",
   "date": "YYYY-MM-DD",
   "start_time": "HH:MM",
   "end_time": "HH:MM or null",
@@ -47,11 +50,12 @@ Each object must have exactly these fields:
 }
 
 Rules:
-- Extract ALL shifts for CLIENT_NAME regardless of which month or week they fall in.
+- Extract ALL of April's shifts regardless of month or week.
 - If the year is not shown, assume 2026.
 - Use 24-hour time. Convert "9am" → "09:00", "1pm" → "13:00".
-- Skip days marked OFF, RDO, or with no time for CLIENT_NAME.
-- If no shifts are found for CLIENT_NAME, return {"appointments": []}. Do not include shifts for other employees.`;
+- Skip days marked OFF, RDO, or where April has no shift.
+- Do not include shifts belonging to other workers.
+- If no shifts are found for April, return {"appointments": []}. `;
 
 export async function parseScheduleText(
   clientName: string,
@@ -70,11 +74,11 @@ export async function parseScheduleText(
   const parsed = JSON.parse(raw) as { appointments: ParsedAppointment[] };
 
   if (!Array.isArray(parsed.appointments)) throw new Error('Unexpected response format from AI');
-  return parsed.appointments;
+  // Attach the caller-supplied clientName since text mode doesn't extract it from the content
+  return parsed.appointments.map((a) => ({ ...a, client_name: clientName }));
 }
 
 export async function parseScheduleImage(
-  clientName: string,
   base64Image: string,
   mimeType: string
 ): Promise<ParsedAppointment[]> {
@@ -87,7 +91,7 @@ export async function parseScheduleImage(
         content: [
           {
             type: 'text',
-            text: IMAGE_PROMPT.replaceAll('CLIENT_NAME', clientName),
+            text: IMAGE_PROMPT,
           },
           {
             type: 'image_url',

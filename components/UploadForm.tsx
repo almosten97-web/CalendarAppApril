@@ -40,7 +40,6 @@ export default function UploadForm({ onSuccess }: Props) {
       if (mode === 'image') {
         if (!imageFile) throw new Error('Please select a schedule image');
         const form = new FormData();
-        form.append('clientName', clientName.trim());
         form.append('image', imageFile);
         const res = await fetch('/api/parse-image', { method: 'POST', body: form });
         data = await res.json();
@@ -90,20 +89,22 @@ export default function UploadForm({ onSuccess }: Props) {
         </button>
       </div>
 
-      {/* Client name */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Client Name <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          required
-          placeholder="e.g. Sarah Johnson"
-          value={clientName}
-          onChange={(e) => setClientName(e.target.value)}
-          className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
-        />
-      </div>
+      {/* Client name — only shown in text mode */}
+      {mode === 'text' && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Client Name <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            required
+            placeholder="e.g. Sarah Johnson"
+            value={clientName}
+            onChange={(e) => setClientName(e.target.value)}
+            className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
+          />
+        </div>
+      )}
 
       {mode === 'image' ? (
         <div>
@@ -133,7 +134,7 @@ export default function UploadForm({ onSuccess }: Props) {
           {imageFile && (
             <p className="mt-1.5 text-xs text-gray-500">{imageFile.name}</p>
           )}
-          <p className="mt-1.5 text-xs text-gray-400">AI will find all shifts for the employee name entered above.</p>
+          <p className="mt-1.5 text-xs text-gray-400">AI will find April&apos;s shifts and color-code each client automatically.</p>
         </div>
       ) : (
         <div>
